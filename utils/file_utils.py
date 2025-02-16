@@ -1,10 +1,12 @@
+from pathlib import Path
 import pickle
 import h5py
 
 def save_pkl(filename, save_object):
-	writer = open(filename,'wb')
-	pickle.dump(save_object, writer)
-	writer.close()
+    Path(filename).parent.mkdir(parents=True, exist_ok=True)
+    writer = open(filename,'wb')
+    pickle.dump(save_object, writer)
+    writer.close()
 
 def load_pkl(filename):
 	loader = open(filename,'rb')
@@ -14,6 +16,7 @@ def load_pkl(filename):
 
 
 def save_hdf5(output_path, asset_dict, attr_dict= None, mode='a', chunk_size=32):
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     with h5py.File(output_path, mode) as file:
         for key, val in asset_dict.items():
             data_shape = val.shape

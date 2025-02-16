@@ -1,5 +1,8 @@
 from __future__ import print_function
 
+from fileinput import filename
+import glob
+from pathlib import Path
 import numpy as np
 
 import argparse
@@ -138,15 +141,9 @@ def main(config_dict):
 
 
     if data_args.process_list is None:
-        if isinstance(data_args.data_dir, list):
-            slides = []
-            for data_dir in data_args.data_dir:
-                slides.extend(os.listdir(data_dir))
-        else:
-            slides = sorted(os.listdir(data_args.data_dir))
-        slides = [slide for slide in slides if data_args.slide_ext in slide]
+        glob_pattern = f"**/*{data_args.slide_ext}"
+        slides = glob.glob(glob_pattern, root_dir=data_args.data_dir, recursive=True)
         df = initialize_df(slides, def_seg_params, def_filter_params, def_vis_params, def_patch_params, use_heatmap_args=False)
-        
     else:
         df = pd.read_csv(os.path.join('heatmaps/process_lists', data_args.process_list))
         df = initialize_df(df, def_seg_params, def_filter_params, def_vis_params, def_patch_params, use_heatmap_args=False)
@@ -341,7 +338,9 @@ def main(config_dict):
                 for idx, (s_coord, s_score) in enumerate(zip(sample_results['sampled_coords'], sample_results['sampled_scores'])):
                     print('coord: {} score: {:.3f}'.format(s_coord, s_score))
                     patch = wsi_object.wsi.read_region(tuple(s_coord), patch_args.patch_level, (patch_args.patch_size, patch_args.patch_size)).convert('RGB')
-                    patch.save(os.path.join(sample_save_dir, '{}_{}_x_{}_y_{}_a_{:.3f}.png'.format(idx, slide_id, s_coord[0], s_coord[1], s_score)))
+                    filename = os.path.join(sample_save_dir, '{}_{}_x_{}_y_{}_a_{:.3f}.png'.format(idx, slide_id, s_coord[0], s_coord[1], s_score))
+                    Path(filename).parent.mkdir(parents=True, exist_ok=True)
+                    patch.save(filename)
 
         wsi_kwargs = {'top_left': top_left, 'bot_right': bot_right, 'patch_size': patch_size, 'step_size': step_size, 
         'custom_downsample':patch_args.custom_downsample, 'level': patch_args.patch_level, 'use_center_shift': heatmap_args.use_center_shift}
@@ -409,10 +408,12 @@ def main(config_dict):
                                     thresh=heatmap_args.binary_thresh,  patch_size = vis_patch_size,
                                     overlap=patch_args.overlap, 
                                     top_left=top_left, bot_right = bot_right)
+            heatmap_filename = os.path.join(p_slide_save_dir, heatmap_save_name)
+            Path(heatmap_filename).parent.mkdir(parents=True, exist_ok=True)
             if heatmap_args.save_ext == 'jpg':
-                heatmap.save(os.path.join(p_slide_save_dir, heatmap_save_name), quality=100)
+                heatmap.save(heatmap_filename, quality=100)
             else:
-                heatmap.save(os.path.join(p_slide_save_dir, heatmap_save_name))
+                heatmap.save(heatmap_filename)
         
         if heatmap_args.save_orig:
             if heatmap_args.vis_level >= 0:
@@ -429,6 +430,7 @@ def main(config_dict):
                 else:
                     heatmap.save(os.path.join(p_slide_save_dir, heatmap_save_name))
 
+    os.makedirs(os.path.join(exp_args.raw_save_dir, exp_args.save_exp_code), exist_ok=True)
     with open(os.path.join(exp_args.raw_save_dir, exp_args.save_exp_code, 'config.yaml'), 'w') as outfile:
         yaml.dump(config_dict, outfile, default_flow_style=False)
 
