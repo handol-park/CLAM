@@ -162,7 +162,7 @@ def main(config_dict):
     print('\nckpt path: {}'.format(ckpt_path))
     
     if model_args.initiate_fn == 'initiate_model':
-        model =  initiate_model(model_args, ckpt_path)
+        model =  initiate_model(model_args, ckpt_path, device=device)
     else:
         raise NotImplementedError
 
