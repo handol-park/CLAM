@@ -24,13 +24,15 @@ from wsi_core.wsi_utils import sample_rois
 from utils.file_utils import save_hdf5
 from tqdm import tqdm
 
-parser = argparse.ArgumentParser(description='Heatmap inference script')
-parser.add_argument('--save_exp_code', type=str, default=None,
-                    help='experiment code')
-parser.add_argument('--overlap', type=float, default=None)
-parser.add_argument('--config_file', type=str, default="heatmap_config_template.yaml")
-args = parser.parse_args()
 device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Heatmap inference script')
+    parser.add_argument('--save_exp_code', type=str, default=None,
+                        help='experiment code')
+    parser.add_argument('--overlap', type=float, default=None)
+    parser.add_argument('--config_file', type=str, default="heatmap_config_template.yaml")
+    return parser.parse_args()
 
 def infer_single_slide(model, features, label, reverse_label_dict, k=1):
     features = features.to(device)
@@ -80,11 +82,7 @@ def parse_config_dict(args, config_dict):
         config_dict['patching_arguments']['overlap'] = args.overlap
     return config_dict
 
-if __name__ == '__main__':
-    config_path = os.path.join('heatmaps/configs', args.config_file)
-    config_dict = yaml.safe_load(open(config_path, 'r'))
-    config_dict = parse_config_dict(args, config_dict)
-
+def main(config_dict):
     for key, value in config_dict.items():
         if isinstance(value, dict):
             print('\n'+key)
@@ -93,13 +91,13 @@ if __name__ == '__main__':
         else:
             print ('\n'+key + " : " + str(value))
             
-    decision = input('Continue? Y/N ')
-    if decision in ['Y', 'y', 'Yes', 'yes']:
-        pass
-    elif decision in ['N', 'n', 'No', 'NO']:
-        exit()
-    else:
-        raise NotImplementedError
+    # decision = input('Continue? Y/N ')
+    # if decision in ['Y', 'y', 'Yes', 'yes']:
+    #     pass
+    # elif decision in ['N', 'n', 'No', 'NO']:
+    #     exit()
+    # else:
+    #     raise NotImplementedError
 
     args = config_dict
     patch_args = argparse.Namespace(**args['patching_arguments'])
@@ -435,3 +433,15 @@ if __name__ == '__main__':
         yaml.dump(config_dict, outfile, default_flow_style=False)
 
 
+def load_config(config_path):
+    config_dict = yaml.safe_load(open(config_path, 'r'))
+    config_dict = parse_config_dict(args, config_dict)
+    return config_dict
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    # config_path = os.path.join('heatmaps/configs', args.config_file)
+    config_path = args.config_path
+    config_dict = load_config(config_path)
+    main(config_dict)

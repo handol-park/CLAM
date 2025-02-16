@@ -73,12 +73,13 @@ def compute_from_patches(wsi_object, img_transforms, feature_extractor=None, cla
                 if A.size(0) > 1: #CLAM multi-branch attention
                     A = A[clam_pred]
 
-                A = A.view(-1, 1).cpu().numpy()
+                A = A.cpu().numpy().reshape(-1)
 
                 if ref_scores is not None:
-                    for score_idx in range(len(A)):
-                        A[score_idx] = score2percentile(A[score_idx], ref_scores)
+                    ref_scores_1d = ref_scores.reshape(-1)
+                    A = percentileofscore(ref_scores_1d, A)
 
+                A = A.reshape(-1, 1)
                 asset_dict = {'attention_scores': A, 'coords': coords}
                 save_path = save_hdf5(attn_save_path, asset_dict, mode=mode)
     
